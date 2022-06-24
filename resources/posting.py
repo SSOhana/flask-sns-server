@@ -77,6 +77,9 @@ class PostingResource(Resource) :
             # 5. 커넥션을 커밋해줘야 한다 => 디비에 영구적으로 반영하라는 뜻
             connection.commit()
 
+            # 이 포스팅의 아이디 값을 가져온다.
+            posting_id = cursor.lastrowid
+
             # 6. 자원 해제
             cursor.close()
             connection.close()
@@ -87,5 +90,102 @@ class PostingResource(Resource) :
             connection.close()
             return {"error" : str(e)}, 503
 
+
+        # 3. 오브젝트 디텍션을 수행해서 레이블의 Name 을 가져온다.
+        # 인공지능 활용, 예측
+        client = boto3.client('rekognition', 
+                                'ap-northeast-2',
+                                aws_access_key_id=Config.ACCESS_KEY,
+                                aws_secret_access_key = Config.SECRET_ACCESS)
+        response = client.detect_labels(Image={'S3Object' : {
+                                        'Bucket':Config.S3_BUCKET,        
+                                        'Name':new_file_name }} , 
+                                        MaxLabels=5 )   # 하나에 이미지에 태그 5개 뽑는 것
+
+
+        # 4. 레이블의 Name 을 가지고 태그를 만든다 !!! (엄청 중요한 부분!)
+
+        # 4-1. label['Name'] 의 문자열을 tag_name 테이블에서 찾는다. (반복문을 통해서 처리 해야,)
+        #      테이블에 이 태그가 있으면, id 를 가져온다.
+        #      이 tagId 와 위의 postingId 를 가지고, tag 테이블에 저장한다.
+
+
+
+
+        # 4-2. 만약 tag_name 테이블에 이 tag 가 없으면,
+        #      tag_name 테이블에 이 태그 이름을 저장하고,
+        #      저장된 id 값과 위의 postingId 를 가지고,
+        #      tag 테이블에 저장한다.
+
+        for label in response['Labels'] :
+            # label['Name'] 이 값을 우리는 태그 이름으로 사용할 것
+            try :
+                connection = get_connection()
+
+                query = '''select *
+                        from tag_name
+                        where name = %s ;'''
+                
+                record = (label['Name'],)
+
+                # select 문은, dictionary = True 를 해준다.
+                cursor = connection.cursor(dictionary = True)
+
+                cursor.execute(query, record)
+
+                # select 문은, 아래 함수를 이용해서, 데이터를 가져온다.
+                result_list = cursor.fetchall()
+                
+                if len(result_list) == 0 :
+                    # 태그 이름을 insert 해준다.
+                    query = '''insert into tag_name
+                            (name)
+                            values
+                            (%s) ;'''
+                    
+                    record = (label['Name'],)
+
+                    # 3. 커서를 가져온다.
+                    cursor = connection.cursor()
+
+                    # 4. 쿼리문을 커서를 이용해서 실행한다.
+                    cursor.execute(query, record)
+
+                    # 5. 커넥션을 커밋해줘야 한다 => 디비에 영구적으로 반영하라는 뜻
+                    connection.commit()                    
+
+                    # 태그 아이디를 가져온다.
+                    tag_name_id = cursor.lastrowid
+
+                else :
+                    tag_name_id = result_list[0]['id']
+
+
+                # posting_id 와 tag_name_id 가 준비되었으니
+                # tag 테이블에 insert 한다.
+                query = '''insert into tag_name
+                        (name)
+                        values
+                        (%s) ;'''
+                
+                record = (tag_name_id, posting_id)
+
+                # 3. 커서를 가져온다.
+                cursor = connection.cursor()
+
+                # 4. 쿼리문을 커서를 이용해서 실행한다.
+                cursor.execute(query, record)
+
+                # 5. 커넥션을 커밋해줘야 한다 => 디비에 영구적으로 반영하라는 뜻
+                connection.commit()        
+
+                cursor.close()
+                connection.close()
+
+            except mysql.connector.Error as e :
+                print(e)
+                cursor.close()
+                connection.close()
+                return {"error" : str(e)}, 503       
 
         return {'result' : 'success'}

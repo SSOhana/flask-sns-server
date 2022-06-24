@@ -28,9 +28,9 @@ api.add_resource(UserRegisterResource, '/users/register')
 api.add_resource(UserLoginResource, '/users/login')
 api.add_resource(UserLogoutResource, '/users/logout')
 
-api.add_resource(PostingResource, '/posting')
+api.add_resource(PostingResource, '/posting')                       # 포스팅 API
 
-api.add_resource(FollowResource, '/follow/<int:follow_id>')
+api.add_resource(FollowResource, '/follow/<int:follow_id>')         # 친구맺기 API
 
 if __name__=="__main__" :
     app.run()
