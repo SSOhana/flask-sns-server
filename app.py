@@ -4,6 +4,7 @@ from flask_restful import Api
 from config import Config
 from resources.follow import FollowResource
 from resources.posting import PostingResource
+from resources.tag import TagSearchResource
 
 from resources.user import UserLoginResource, UserLogoutResource, UserRegisterResource, jwt_blacklist
 
@@ -24,13 +25,15 @@ def check_if_token_is_revoked(jwt_header, jwt_payload):
 api = Api(app)
 
 # 경로와 리소스(API 코드)를 연결한다.
-api.add_resource(UserRegisterResource, '/users/register')
-api.add_resource(UserLoginResource, '/users/login')
-api.add_resource(UserLogoutResource, '/users/logout')
+api.add_resource(UserRegisterResource, '/users/register')           # 회원가입 API
+api.add_resource(UserLoginResource, '/users/login')                 # 로그인 API
+api.add_resource(UserLogoutResource, '/users/logout')               # 로그아웃 API
 
 api.add_resource(PostingResource, '/posting')                       # 포스팅 API
 
 api.add_resource(FollowResource, '/follow/<int:follow_id>')         # 친구맺기 API
+
+api.add_resource(TagSearchResource, '/posting/search/tag')          # 
 
 if __name__=="__main__" :
     app.run()

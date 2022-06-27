@@ -110,8 +110,6 @@ class PostingResource(Resource) :
         #      이 tagId 와 위의 postingId 를 가지고, tag 테이블에 저장한다.
 
 
-
-
         # 4-2. 만약 tag_name 테이블에 이 tag 가 없으면,
         #      tag_name 테이블에 이 태그 이름을 저장하고,
         #      저장된 id 값과 위의 postingId 를 가지고,
